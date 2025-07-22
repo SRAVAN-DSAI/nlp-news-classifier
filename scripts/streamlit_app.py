@@ -557,10 +557,10 @@ with tab2:
                         },
                         "options": {
                             "plugins": {
-                                "legend": {"display": false},
-                                "tooltip": {"enabled": true},
+                                "legend": {"display": False},
+                                "tooltip": {"enabled": True},
                                 "title": {
-                                    "display": true,
+                                    "display": True,
                                     "text": "Category Distribution",
                                     "font": {"size": 16, "color": "var(--chart-text)"},
                                     "color": "var(--chart-text)"
@@ -568,9 +568,9 @@ with tab2:
                             },
                             "scales": {
                                 "y": {
-                                    "beginAtZero": true,
+                                    "beginAtZero": True,
                                     "title": {
-                                        "display": true,
+                                        "display": True,
                                         "text": "Count",
                                         "color": "var(--chart-text)"
                                     },
@@ -579,7 +579,7 @@ with tab2:
                                 },
                                 "x": {
                                     "title": {
-                                        "display": true,
+                                        "display": True,
                                         "text": "Category",
                                         "color": "var(--chart-text)"
                                     },
@@ -591,7 +591,7 @@ with tab2:
                         }
                     }
                     st.markdown("### Category Distribution")
-                    st.markdown("<div class='tooltip'>Hover over bars for details<span class='tooltiptext'>Click bars to highlight</span></div>", unsafe_allow_html=true)
+                    st.markdown("<div class='tooltip'>Hover over bars for details<span class='tooltiptext'>Click bars to highlight</span></div>", unsafe_allow_html=True)
                     st.write("")
                     st.markdown(f"```chartjs\n{chart_data}\n```")
 
@@ -605,7 +605,7 @@ with tab2:
                             **res["raw_probabilities"]
                         } for res in all_raw_results
                     ])
-                    full_results_df.to_csv(csv_buffer, index=false)
+                    full_results_df.to_csv(csv_buffer, index=False)
                     st.session_state.batch_download_data = csv_buffer.getvalue()
 
                     st.download_button(
@@ -656,7 +656,7 @@ with tab4:
         - Email: sravankodari4@gmail.com
 
         <small>Last updated: July 2025</small>
-    """, unsafe_allow_html=true)
+    """, unsafe_allow_html=True)
 
 # --- Footer ---
 st.markdown("""
@@ -665,4 +665,4 @@ st.markdown("""
         <a href='https://github.com/SRAVAN-DSAI/nlp_news_pipeline' target='_blank'>GitHub</a> | 
         <a href='https://www.linkedin.com/in/sravan-kodari' target='_blank'>LinkedIn</a></p>
     </div>
-""", unsafe_allow_html=true)
+""", unsafe_allow_html=True)
