@@ -409,9 +409,8 @@ with tab1:
             st.warning("Input is too short. Please provide more text for accurate classification.")
     with col_sample:
         st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("Try Sample", help="Load a sample article"):
-            st.session_state.text_input_single = sample_article
-            st.experimental_rerun()
+        if st.button("Try Sample", help="Load a sample article", on_click=lambda: st.session_state.update({"text_input_single": sample_article})):
+            pass  # State update handled by on_click
 
     if st.button("🚀 Classify", help="Run classification on the input text"):
         if user_input_single and len(user_input_single.strip()) >= 10:
@@ -558,10 +557,10 @@ with tab2:
                         },
                         "options": {
                             "plugins": {
-                                "legend": {"display": False},
-                                "tooltip": {"enabled": True},
+                                "legend": {"display": false},
+                                "tooltip": {"enabled": true},
                                 "title": {
-                                    "display": True,
+                                    "display": true,
                                     "text": "Category Distribution",
                                     "font": {"size": 16, "color": "var(--chart-text)"},
                                     "color": "var(--chart-text)"
@@ -569,9 +568,9 @@ with tab2:
                             },
                             "scales": {
                                 "y": {
-                                    "beginAtZero": True,
+                                    "beginAtZero": true,
                                     "title": {
-                                        "display": True,
+                                        "display": true,
                                         "text": "Count",
                                         "color": "var(--chart-text)"
                                     },
@@ -580,7 +579,7 @@ with tab2:
                                 },
                                 "x": {
                                     "title": {
-                                        "display": True,
+                                        "display": true,
                                         "text": "Category",
                                         "color": "var(--chart-text)"
                                     },
@@ -592,7 +591,7 @@ with tab2:
                         }
                     }
                     st.markdown("### Category Distribution")
-                    st.markdown("<div class='tooltip'>Hover over bars for details<span class='tooltiptext'>Click bars to highlight</span></div>", unsafe_allow_html=True)
+                    st.markdown("<div class='tooltip'>Hover over bars for details<span class='tooltiptext'>Click bars to highlight</span></div>", unsafe_allow_html=true)
                     st.write("")
                     st.markdown(f"```chartjs\n{chart_data}\n```")
 
@@ -606,7 +605,7 @@ with tab2:
                             **res["raw_probabilities"]
                         } for res in all_raw_results
                     ])
-                    full_results_df.to_csv(csv_buffer, index=False)
+                    full_results_df.to_csv(csv_buffer, index=false)
                     st.session_state.batch_download_data = csv_buffer.getvalue()
 
                     st.download_button(
@@ -657,7 +656,7 @@ with tab4:
         - Email: sravankodari4@gmail.com
 
         <small>Last updated: July 2025</small>
-    """, unsafe_allow_html=True)
+    """, unsafe_allow_html=true)
 
 # --- Footer ---
 st.markdown("""
@@ -666,4 +665,4 @@ st.markdown("""
         <a href='https://github.com/SRAVAN-DSAI/nlp_news_pipeline' target='_blank'>GitHub</a> | 
         <a href='https://www.linkedin.com/in/sravan-kodari' target='_blank'>LinkedIn</a></p>
     </div>
-""", unsafe_allow_html=True)
+""", unsafe_allow_html=true)
