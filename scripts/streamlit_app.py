@@ -1,4 +1,3 @@
-# scripts/streamlit_app.py (Portfolio-Ready Advanced Version - FINAL UPDATED CODE)
 
 import streamlit as st
 import torch
@@ -7,165 +6,249 @@ import os
 import pickle
 import pandas as pd
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
-import matplotlib.pyplot as plt # For plotting
-import seaborn as sns # For plotting
-import io # For handling file downloads
-import time # For simulating loading times / progress
+import io
+import time
 
-# --- Streamlit App Configuration (MUST be the first Streamlit command) ---
+# --- Streamlit App Configuration ---
 st.set_page_config(
-    page_title="News Article Classifier Portfolio Demo",
-    layout="wide", # Use 'wide' layout for more screen space
-    initial_sidebar_state="expanded" # Keep sidebar open by default
+    page_title="News Article Classifier | Sravan Kodari",
+    page_icon="📰",  # Custom favicon
+    layout="wide",
+    initial_sidebar_state="expanded",
+    menu_items={
+        'Get Help': 'https://github.com/SRAVAN-DSAI/nlp_news_pipeline',
+        'Report a Bug': 'mailto:sravankodari4@gmail.com',
+        'About': 'News Article Classifier by Sravan Kodari'
+    }
 )
 
-# --- Custom CSS for a more polished look ---
+# --- Custom CSS for Advanced UI ---
 st.markdown("""
     <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
     .stApp {
-        background-color: #f0f2f6; /* Light gray background */
-        color: #333333;
+        font-family: 'Inter', sans-serif;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        color: #1a1a1a;
+        transition: background 0.3s ease;
+    }
+    [data-theme="dark"] .stApp {
+        background: linear-gradient(135deg, #2c3e50 0%, #1a1a1a 100%);
+        color: #e0e0e0;
+    }
+    .stSidebar {
+        background-color: #ffffff;
+        border-right: 1px solid #e0e0e0;
+        box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+    }
+    [data-theme="dark"] .stSidebar {
+        background-color: #2c3e50;
+        border-right: 1px solid #34495e;
     }
     .stTabs [data-baseweb="tab-list"] {
-        gap: 20px; /* Add space between tabs */
-        /* Ensure tabs take full width and wrap if needed without breaking layout */
-        flex-wrap: wrap; 
-        justify-content: flex-start; /* Align tabs to start */
+        gap: 10px;
+        padding: 10px;
+        background-color: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    [data-theme="dark"] .stTabs [data-baseweb="tab-list"] {
+        background-color: #34495e;
     }
     .stTabs [data-baseweb="tab-list"] button {
-        padding: 10px 15px; /* Adjust padding for better look */
-        border-radius: 8px 8px 0 0; /* Rounded top corners for tabs */
-        border-bottom: 3px solid transparent; /* Highlight active tab */
-        transition: all 0.2s ease-in-out;
+        padding: 12px 20px;
+        border-radius: 10px;
+        background-color: transparent;
+        transition: all 0.3s ease;
+        font-weight: 600;
+        color: #34495e;
+    }
+    [data-theme="dark"] .stTabs [data-baseweb="tab-list"] button {
+        color: #ecf0f1;
     }
     .stTabs [data-baseweb="tab-list"] button:hover {
-        background-color: #e0e0e0;
+        background-color: #ecf0f1;
+        transform: translateY(-2px);
     }
     .stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {
-        background-color: #ffffff; /* Active tab background */
-        border-bottom: 3px solid #4CAF50; /* Active tab underline */
-        color: #4CAF50; /* Active tab text color */
-    }
-    .stTabs [data-baseweb="tab-list"] button [data-testid="stMarkdownContainer"] p {
-        font-size: 1.1rem; /* Larger tab titles */
-        font-weight: bold;
-        white-space: nowrap; /* Prevent text from wrapping */
-        overflow: visible;   /* Ensure text is not clipped */
-        display: block;      /* Ensure it takes up necessary space */
-        line-height: 1;      /* Ensure consistent line height */
+        background-color: #3498db;
+        color: #ffffff;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
     .stButton>button {
-        background-color: #4CAF50; /* Green button */
-        color: white;
-        border: none; /* Remove default border */
-        border-radius: 8px;
-        padding: 10px 20px;
-        font-size: 1rem;
-        transition: background-color 0.3s ease;
-        cursor: pointer; /* Indicate clickable */
+        background: linear-gradient(45deg, #3498db, #2980b9);
+        color: #ffffff;
+        border: none;
+        border-radius: 12px;
+        padding: 12px 24px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
     .stButton>button:hover {
-        background-color: #45a049;
+        background: linear-gradient(45deg, #2980b9, #3498db);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.3);
     }
     .stTextArea textarea {
-        border-radius: 8px;
-        border: 1px solid #cccccc;
-        padding: 10px;
+        border-radius: 12px;
+        border: 2px solid #e0e0e0;
+        padding: 12px;
+        font-size: 1rem;
+        transition: border-color 0.3s ease;
+    }
+    .stTextArea textarea:focus {
+        border-color: #3498db;
+        box-shadow: 0 0 5px rgba(52, 152, 219, 0.5);
     }
     .stDataFrame {
-        border-radius: 8px;
-        overflow: hidden; /* Ensures rounded corners apply to content */
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     .stAlert {
-        border-radius: 8px;
+        border-radius: 12px;
+        padding: 15px;
     }
-    h1, h2, h3, h4, h5, h6 {
-        color: #2c3e50; /* Darker headings */
+    h1, h2, h3 {
+        color: #2c3e50;
+        font-weight: 700;
     }
-    .block-container {
-        padding-top: 2rem;
-        padding-bottom: 2rem;
+    [data-theme="dark"] h1, [data-theme="dark"] h2, [data-theme="dark"] h3 {
+        color: #ecf0f1;
     }
-    /* Custom progress bar styling */
     .stProgress > div > div > div > div {
-        background-color: #4CAF50; /* Green progress bar */
+        background: linear-gradient(45deg, #3498db, #2980b9);
+    }
+    .header-container {
+        position: sticky;
+        top: 0;
+        background-color: #ffffff;
+        z-index: 1000;
+        padding: 1rem;
+        border-bottom: 1px solid #e0e0e0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    [data-theme="dark"] .header-container {
+        background-color: #2c3e50;
+        border-bottom: 1px solid #34495e;
+    }
+    .footer-container {
+        background-color: #ffffff;
+        padding: 1rem;
+        text-align: center;
+        border-top: 1px solid #e0e0e0;
+        margin-top: 2rem;
+    }
+    [data-theme="dark"] .footer-container {
+        background-color: #2c3e50;
+        border-top: 1px solid #34495e;
+    }
+    .tooltip {
+        position: relative;
+        display: inline-block;
+    }
+    .tooltip .tooltiptext {
+        visibility: hidden;
+        width: 120px;
+        background-color: #34495e;
+        color: #fff;
+        text-align: center;
+        border-radius: 6px;
+        padding: 5px;
+        position: absolute;
+        z-index: 1;
+        bottom: 125%;
+        left: 50%;
+        margin-left: -60px;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+    .tooltip:hover .tooltiptext {
+        visibility: visible;
+        opacity: 1;
     }
     </style>
 """, unsafe_allow_html=True)
 
+# --- Header with Branding ---
+st.markdown("""
+    <div class='header-container'>
+        <div style='display: flex; align-items: center;'>
+            <h2 style='margin: 0;'>📰 News Classifier</h2>
+            <span style='margin-left: 1rem; color: #7f8c8d;'>by Sravan Kodari</span>
+        </div>
+        <div>
+            <a href='https://github.com/SRAVAN-DSAI/nlp_news_pipeline' target='_blank' style='margin-right: 1rem; text-decoration: none; color: #3498db;'>GitHub</a>
+            <a href='https://www.linkedin.com/in/sravan-kodari' target='_blank' style='text-decoration: none; color: #3498db;'>LinkedIn</a>
+        </div>
+    </div>
+""", unsafe_allow_html=True)
 
-# --- Configuration Paths (relative to project root) ---
+# --- Dark Mode Toggle ---
+if 'theme' not in st.session_state:
+    st.session_state.theme = 'light'
+
+def toggle_theme():
+    st.session_state.theme = 'dark' if st.session_state.theme == 'light' else 'light'
+
+st.markdown(f"""
+    <script>
+        document.body.setAttribute('data-theme', '{st.session_state.theme}');
+    </script>
+""", unsafe_allow_html=True)
+
+st.sidebar.button("🌙 Toggle Dark Mode", on_click=toggle_theme)
+
+# --- Configuration Paths ---
 LOCAL_MODEL_DIR_RELATIVE = "models/trained_news_classifier"
 LOCAL_LABEL_MAP_FILE_RELATIVE = "models/label_map.pkl"
 
-# --- Model Loading (Cached for performance) ---
-@st.cache_resource(show_spinner=False) # Hide default spinner, use custom progress bar
+# --- Model Loading ---
+@st.cache_resource(show_spinner=False)
 def load_model_and_tokenizer():
-    """
-    Loads the trained model, tokenizer, and label map.
-    Assumes files are present in the defined local paths.
-    """
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
     model_dir_to_load = os.path.join(project_root, LOCAL_MODEL_DIR_RELATIVE)
     label_map_file_to_load = os.path.join(project_root, LOCAL_LABEL_MAP_FILE_RELATIVE)
 
-    # Custom progress bar for loading
-    loading_status = st.empty() # Placeholder for dynamic messages
-    my_bar = st.progress(0)
+    loading_container = st.container()
+    with loading_container:
+        st.markdown("### Model Loading")
+        loading_status = st.empty()
+        my_bar = st.progress(0)
+        steps = ["Initializing...", "Checking device...", "Loading label map...", "Loading tokenizer...", "Loading model..."]
+        for i, step in enumerate(steps):
+            loading_status.info(step)
+            my_bar.progress((i + 1) * 20)
+            time.sleep(0.2)
 
-    try:
-        my_bar.progress(5, text="Initializing...")
-        time.sleep(0.1) # Small delay for visual effect
-
-        # Determine device (GPU if available, else CPU)
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        loading_status.info(f"Loading model on: **{device.type.upper()}**")
-        my_bar.progress(15)
-        time.sleep(0.1)
+        loading_status.info(f"Using device: **{device.type.upper()}**")
 
-        # Load label map
-        if not os.path.exists(label_map_file_to_load):
-            loading_status.error(f"Error: Label map file not found at '{label_map_file_to_load}'.")
-            st.stop() # Stop app execution
+        try:
+            with open(label_map_file_to_load, 'rb') as f:
+                loaded_label_map = pickle.load(f)
+            id_to_label = {v: k for k, v in loaded_label_map.items()}
+
+            tokenizer = AutoTokenizer.from_pretrained(model_dir_to_load)
+            model = AutoModelForSequenceClassification.from_pretrained(model_dir_to_load)
+            model.to(device)
+            model.eval()
+
+            loading_status.success("Model and tokenizer loaded successfully!")
+            my_bar.progress(100)
+            time.sleep(0.5)
+            loading_container.empty()
+            return model, tokenizer, id_to_label, device
+        except Exception as e:
+            loading_status.error(f"Failed to load model: {e}")
+            st.stop()
             return None, None, None, None
 
-        with open(label_map_file_to_load, 'rb') as f:
-            loaded_label_map = pickle.load(f)
-        id_to_label = {v: k for k, v in loaded_label_map.items()}
-        loading_status.info(f"Label map loaded. Found **{len(id_to_label)}** categories.")
-        my_bar.progress(40)
-        time.sleep(0.1)
-
-        # Load model and tokenizer
-        if not os.path.exists(model_dir_to_load) or not os.listdir(model_dir_to_load):
-            loading_status.error(f"Error: Model directory not found or empty at '{model_dir_to_load}'.")
-            st.stop() # Stop app execution
-            return None, None, None, None
-
-        tokenizer = AutoTokenizer.from_pretrained(model_dir_to_load)
-        loading_status.info("Tokenizer loaded.")
-        my_bar.progress(70)
-        time.sleep(0.1)
-
-        model = AutoModelForSequenceClassification.from_pretrained(model_dir_to_load)
-        model.to(device)
-        model.eval() # Set model to evaluation mode
-        loading_status.success("Model loaded successfully!")
-        my_bar.progress(100)
-        time.sleep(0.2) # Final delay for success message to be seen
-
-        loading_status.empty() # Clear the status message
-        my_bar.empty() # Clear the progress bar
-        return model, tokenizer, id_to_label, device
-
-    except Exception as e:
-        loading_status.error(f"Failed to load model or tokenizer: {e}")
-        st.exception(e) # Display full exception for debugging
-        st.info("Please ensure the model files are valid and compatible with the installed `transformers` and `torch` versions.")
-        st.stop() # Stop app execution on critical error
-        return None, None, None, None
-
-# Load the model and tokenizer when the script first runs
 model, tokenizer, id_to_label, device = load_model_and_tokenizer()
 
 # --- Prediction Function ---
@@ -174,14 +257,13 @@ def predict_category(text_list, loaded_model, loaded_tokenizer, id_to_label_map,
     total_texts = len(text_list)
     for i, text in enumerate(text_list):
         if progress_text_placeholder:
-            progress_text_placeholder.text(f"Predicting text {i+1} of {total_texts}...")
-
-        if not isinstance(text, str) or not text.strip(): # Handle potential non-string entries or empty strings
+            progress_text_placeholder.text(f"Predicting text {i+1}/{total_texts}...")
+        
+        if not isinstance(text, str) or not text.strip():
             results.append({"text": text, "predicted_category": "Invalid/Empty Input", "confidence": 0.0, "raw_probabilities": {}})
             continue
 
         inputs = loaded_tokenizer(text, return_tensors="pt", truncation=True, padding=True, max_length=128).to(current_device)
-
         with torch.no_grad():
             output = loaded_model(**inputs)
             logits = output.logits
@@ -190,7 +272,6 @@ def predict_category(text_list, loaded_model, loaded_tokenizer, id_to_label_map,
         predicted_label_idx = torch.argmax(probabilities, dim=-1).item()
         predicted_score = probabilities[0, predicted_label_idx].item()
         predicted_category = id_to_label_map.get(predicted_label_idx, "Unknown")
-        
         raw_probs_dict = {id_to_label_map.get(idx, f"LABEL_{idx}"): prob for idx, prob in enumerate(probabilities.cpu().numpy().flatten())}
 
         results.append({
@@ -200,27 +281,37 @@ def predict_category(text_list, loaded_model, loaded_tokenizer, id_to_label_map,
             "raw_probabilities": raw_probs_dict
         })
     if progress_text_placeholder:
-        progress_text_placeholder.empty() # Clear progress text when done
+        progress_text_placeholder.empty()
     return results
 
-# --- Main App Logic ---
+# --- Sidebar Controls ---
+with st.sidebar:
+    st.header("⚙️ Settings")
+    with st.expander("Prediction Settings", expanded=True):
+        confidence_threshold = st.slider(
+            "Confidence Threshold",
+            min_value=0.0,
+            max_value=1.0,
+            value=0.75,
+            step=0.05,
+            help="Filter predictions by minimum confidence level.",
+            key="confidence_threshold"
+        )
+    with st.expander("Batch Processing"):
+        max_batch_size = st.number_input(
+            "Max Batch Size",
+            min_value=1,
+            max_value=100,
+            value=50,
+            step=1,
+            help="Limit the number of articles processed in one batch."
+        )
 
-st.sidebar.header("⚙️ App Controls")
-confidence_threshold = st.sidebar.slider(
-    "Minimum Confidence Threshold",
-    min_value=0.0,
-    max_value=1.0,
-    value=0.75, # Default threshold
-    step=0.05,
-    help="Only display predictions with confidence above this value."
-)
-st.sidebar.markdown("---")
-
-# Initialize session state for clearing inputs and storing results
+# --- Session State Initialization ---
 if 'text_input_single' not in st.session_state:
     st.session_state.text_input_single = ""
 if 'file_uploader_key' not in st.session_state:
-    st.session_state.file_uploader_key = 0 # Unique key for file uploader
+    st.session_state.file_uploader_key = 0
 if 'batch_results_df' not in st.session_state:
     st.session_state.batch_results_df = pd.DataFrame()
 if 'batch_category_counts' not in st.session_state:
@@ -228,289 +319,275 @@ if 'batch_category_counts' not in st.session_state:
 if 'batch_download_data' not in st.session_state:
     st.session_state.batch_download_data = None
 
-
-# Function to clear all inputs and results
 def clear_all_inputs():
     st.session_state.text_input_single = ""
-    st.session_state.file_uploader_key += 1 # Increment key to force file uploader reset
+    st.session_state.file_uploader_key += 1
     st.session_state.batch_results_df = pd.DataFrame()
     st.session_state.batch_category_counts = pd.Series()
     st.session_state.batch_download_data = None
-    st.success("Inputs and results cleared!")
-    time.sleep(0.5) # Small delay for message to be seen
-    st.experimental_rerun() # Rerun to apply changes
+    st.success("All inputs and results cleared!")
+    time.sleep(0.5)
+    st.experimental_rerun()
 
-
-if st.sidebar.button("🧹 Clear All Inputs & Results"):
-    clear_all_inputs()
-
+st.sidebar.button("🧹 Clear All", on_click=clear_all_inputs)
 
 # --- Main Tabs ---
-tab1, tab2, tab3, tab4 = st.tabs(["📝 Single Article", "📊 Batch Prediction", "🧠 Model Info", "👋 About"])
+tab1, tab2, tab3, tab4 = st.tabs([
+    "📝 Single Article",
+    "📊 Batch Analysis",
+    "🧠 Model Details",
+    "👋 About"
+])
 
 with tab1:
-    st.header("Analyze a Single News Article")
-    st.markdown("Paste a news article below to get its predicted category and confidence.")
+    st.header("Analyze a Single Article")
+    st.markdown("Enter a news article to classify its category and view confidence scores.")
 
     sample_article = "Google announced today from Mountain View that Sundar Pichai will lead a new AI initiative in London. The company's stock rose slightly after the announcement."
     
-    col_input, col_sample = st.columns([4, 1])
+    col_input, col_sample = st.columns([3, 1])
     with col_input:
         user_input_single = st.text_area(
-            "Enter News Article Text:",
-            key="text_input_single", # Key to manage state
-            height=250,
-            placeholder="e.g., 'Scientists discover new exoplanet with potential for life and water.'"
+            "Article Text",
+            key="text_input_single",
+            height=200,
+            placeholder="e.g., 'Scientists discover new exoplanet with potential for life.'",
+            help="Paste or type a news article here."
         )
+        # Live validation
+        if user_input_single and len(user_input_single.strip()) < 10:
+            st.warning("Input is too short. Please provide more text for accurate classification.")
     with col_sample:
-        st.markdown("<br>", unsafe_allow_html=True) # Add some vertical space
-        if st.button("Try Sample Article"):
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("Try Sample", help="Load a sample article"):
             st.session_state.text_input_single = sample_article
-            st.experimental_rerun() # Rerun to update text area
+            st.experimental_rerun()
 
-    if st.button("🚀 Predict Category"):
-        if user_input_single:
-            with st.spinner("Analyzing article..."):
+    if st.button("🚀 Classify", help="Run classification on the input text"):
+        if user_input_single and len(user_input_single.strip()) >= 10:
+            with st.spinner("Classifying..."):
                 single_result = predict_category([user_input_single], model, tokenizer, id_to_label, device)[0]
             
-            st.subheader("Prediction Result:")
-            
-            if single_result["confidence"] >= confidence_threshold:
-                st.success(f"**Predicted Category:** <span style='font-size: 1.5em; font-weight: bold;'>{single_result['predicted_category']}</span>", unsafe_allow_html=True)
-                st.metric(label="Confidence", value=f"{single_result['confidence']:.2%}")
-            else:
-                st.warning(f"**Prediction below threshold.** Predicted: {single_result['predicted_category']}")
-                st.metric(label="Confidence", value=f"{single_result['confidence']:.2%}")
-                st.write("Consider lowering the threshold in the sidebar if you want to see this prediction.")
-
-            st.markdown("---")
-            st.write("Top 3 Probabilities:")
-            prob_df_single = pd.DataFrame({
-                "Category": single_result['raw_probabilities'].keys(),
-                "Probability": single_result['raw_probabilities'].values()
-            }).sort_values(by="Probability", ascending=False).head(3)
-            st.dataframe(prob_df_single, hide_index=True)
-
-            with st.expander("See All Probabilities"):
-                all_prob_df_single = pd.DataFrame({
+            st.subheader("Classification Result")
+            col_result, col_probs = st.columns([1, 1])
+            with col_result:
+                if single_result["confidence"] >= confidence_threshold:
+                    st.success(f"**Category:** {single_result['predicted_category']}")
+                    st.metric("Confidence", f"{single_result['confidence']:.2%}")
+                else:
+                    st.warning(f"**Category:** {single_result['predicted_category']} (Below threshold)")
+                    st.metric("Confidence", f"{single_result['confidence']:.2%}")
+            with col_probs:
+                prob_df = pd.DataFrame({
                     "Category": single_result['raw_probabilities'].keys(),
-                    "Probability": single_result['raw_probabilities'].values()
+                    "Probability": [f"{v:.2%}" for v in single_result['raw_probabilities'].values()]
                 }).sort_values(by="Probability", ascending=False)
-                st.dataframe(all_prob_df_single, hide_index=True)
+                st.dataframe(prob_df, hide_index=True, use_container_width=True)
 
+                # Interactive Chart
+                chart_data = {
+                    "type": "bar",
+                    "data": {
+                        "labels": list(single_result['raw_probabilities'].keys()),
+                        "datasets": [{
+                            "label": "Probability",
+                            "data": list(single_result['raw_probabilities'].values()),
+                            "backgroundColor": ["#3498db", "#e74c3c", "#2ecc71", "#f1c40f"],
+                            "borderColor": ["#2980b9", "#c0392b", "#27ae60", "#f39c12"],
+                            "borderWidth": 1
+                        }]
+                    },
+                    "options": {
+                        "plugins": {
+                            "legend": {"display": False},
+                            "tooltip": {"enabled": True},
+                            "title": {
+                                "display": True,
+                                "text": "Category Probabilities",
+                                "font": {"size": 16}
+                            }
+                        },
+                        "scales": {
+                            "y": {
+                                "beginAtZero": True,
+                                "title": {"display": True, "text": "Probability"}
+                            },
+                            "x": {
+                                "title": {"display": True, "text": "Category"}
+                            }
+                        }
+                    }
+                }
+                st.markdown("### Probability Distribution")
+                st.markdown("<div class='tooltip'>Hover over bars for details<span class='tooltiptext'>Click bars to highlight</span></div>", unsafe_allow_html=True)
+                st.write("")
+                st.markdown("```chartjs\n" + str(chart_data) + "\n```")
         else:
-            st.warning("Please enter some text to predict.")
+            st.error("Please enter a valid article text.")
 
 with tab2:
-    st.header("Batch Prediction from File")
-    st.markdown("Upload a text file (one article per line) or a CSV file (with a 'text' column) for batch classification.")
+    st.header("Batch Analysis")
+    st.markdown("Upload a text or CSV file to classify multiple articles at once.")
 
     uploaded_file = st.file_uploader(
-        "Upload your file here:",
+        "Upload File",
         type=["txt", "csv"],
-        key=st.session_state.file_uploader_key # Use key for state management
+        key=f"uploader_{st.session_state.file_uploader_key}",
+        help="Supported formats: TXT (one article per line) or CSV (with 'text' column)"
     )
 
     texts_from_file = []
-    if uploaded_file is not None:
-        file_details = {"filename": uploaded_file.name, "filetype": uploaded_file.type, "filesize": uploaded_file.size}
-        st.write(f"File uploaded: **{file_details['filename']}** ({file_details['filesize'] / 1024:.2f} KB)")
-
+    if uploaded_file:
         try:
-            if uploaded_file.type == "text/plain": # .txt file
+            if uploaded_file.type == "text/plain":
                 stringio_obj = io.StringIO(uploaded_file.getvalue().decode("utf-8"))
-                texts_from_file = stringio_obj.readlines()
-                texts_from_file = [line.strip() for line in texts_from_file if line.strip()] # Remove empty lines
-                st.info(f"Loaded **{len(texts_from_file)}** lines from text file.")
-            elif uploaded_file.type == "text/csv": # .csv file
+                texts_from_file = [line.strip() for line in stringio_obj.readlines() if line.strip()]
+                st.info(f"Loaded **{len(texts_from_file)}** articles.")
+            elif uploaded_file.type == "text/csv":
                 df_file = pd.read_csv(uploaded_file)
                 if 'text' in df_file.columns:
                     texts_from_file = df_file['text'].tolist()
-                    st.info(f"Loaded **{len(texts_from_file)}** articles from 'text' column in CSV.")
+                    st.info(f"Loaded **{len(texts_from_file)}** articles from CSV.")
                 else:
-                    st.error("CSV file must contain a column named 'text'.")
-                    texts_from_file = []
-            
-            if not texts_from_file:
-                st.warning("No valid texts found in the uploaded file.")
-
+                    st.error("CSV must have a 'text' column.")
+            if len(texts_from_file) > max_batch_size:
+                texts_from_file = texts_from_file[:max_batch_size]
+                st.warning(f"Processing limited to {max_batch_size} articles per batch.")
         except Exception as e:
             st.error(f"Error processing file: {e}")
-            st.info("Please ensure your file is correctly formatted (UTF-8 encoding).")
-            texts_from_file = [] # Clear texts on error
 
-
-    if st.button("🚀 Run Batch Prediction"):
+    if st.button("🚀 Run Batch Analysis", help="Classify all articles in the uploaded file"):
         if texts_from_file:
-            st.subheader("Batch Prediction Results:")
-            prediction_progress_text = st.empty() # Placeholder for progress text
-            
-            all_raw_results = predict_category(texts_from_file, model, tokenizer, id_to_label, device, prediction_progress_text)
-            
-            # Store raw results in session state for re-filtering
-            st.session_state.all_raw_results = all_raw_results
+            with st.spinner("Processing batch..."):
+                progress_text = st.empty()
+                all_raw_results = predict_category(texts_from_file, model, tokenizer, id_to_label, device, progress_text)
+                st.session_state.all_raw_results = all_raw_results
 
-            # Filter and display results
-            results_df = pd.DataFrame([
-                {
-                    "Text": res["text"][:150] + "..." if len(res["text"]) > 150 else res["text"], # Truncate text for display
-                    "Predicted Category": res["predicted_category"],
-                    "Confidence": f"{res['confidence']:.4f}",
-                    "Threshold Met": "✅ Yes" if res["confidence"] >= confidence_threshold else "❌ No"
-                } for res in all_raw_results
-            ])
-            st.session_state.batch_results_df = results_df # Store for display
-            st.dataframe(results_df, use_container_width=True, height=300)
+                results_df = pd.DataFrame([
+                    {
+                        "Text": res["text"][:150] + "..." if len(res["text"]) > 150 else res["text"],
+                        "Category": res["predicted_category"],
+                        "Confidence": f"{res['confidence']:.2%}",
+                        "Threshold Met": "✅" if res["confidence"] >= confidence_threshold else "❌"
+                    } for res in all_raw_results
+                ])
+                st.session_state.batch_results_df = results_df
 
-            # Visualize Category Distribution
-            st.subheader("Predicted Category Distribution (Above Threshold)")
-            filtered_categories = [res["predicted_category"] for res in all_raw_results if res["confidence"] >= confidence_threshold]
-            if filtered_categories:
-                category_counts = pd.Series(filtered_categories).value_counts()
-                st.session_state.batch_category_counts = category_counts # Store for plotting
-                
-                fig, ax = plt.subplots(figsize=(10, 6))
-                sns.barplot(x=category_counts.index, y=category_counts.values, ax=ax, palette="viridis")
-                ax.set_title("Predicted Categories Distribution (Filtered by Confidence)")
-                ax.set_xlabel("Category")
-                ax.set_ylabel("Count")
-                plt.xticks(rotation=45, ha='right')
-                st.pyplot(fig)
-            else:
-                st.info("No categories to display as no predictions met the current confidence threshold.")
-            
-            # Downloadable results
-            csv_buffer = io.StringIO()
-            # Include full text in download, not truncated
-            full_results_df_for_download = pd.DataFrame([
-                {
-                    "Text": res["text"],
-                    "Predicted Category": res["predicted_category"],
-                    "Confidence": res["confidence"],
-                    "Threshold Met": "Yes" if res["confidence"] >= confidence_threshold else "No",
-                    **res["raw_probabilities"] # Expand raw probabilities into columns
-                } for res in all_raw_results
-            ])
-            full_results_df_for_download.to_csv(csv_buffer, index=False)
-            st.session_state.batch_download_data = csv_buffer.getvalue() # Store for download button
-            
-            st.download_button(
-                label="📥 Download All Predictions (CSV)",
-                data=st.session_state.batch_download_data,
-                file_name="batch_predictions.csv",
-                mime="text/csv",
-                help="Download detailed prediction results including raw probabilities."
-            )
+                st.subheader("Batch Results")
+                st.dataframe(results_df, use_container_width=True, height=400)
+
+                filtered_results = [res for res in all_raw_results if res["confidence"] >= confidence_threshold]
+                if filtered_results:
+                    category_counts = pd.Series([res["predicted_category"] for res in filtered_results]).value_counts()
+                    st.session_state.batch_category_counts = category_counts
+
+                    chart_data = {
+                        "type": "bar",
+                        "data": {
+                            "labels": category_counts.index.tolist(),
+                            "datasets": [{
+                                "label": "Count",
+                                "data": category_counts.values.tolist(),
+                                "backgroundColor": ["#3498db", "#e74c3c", "#2ecc71", "#f1c40f"],
+                                "borderColor": ["#2980b9", "#c0392b", "#27ae60", "#f39c12"],
+                                "borderWidth": 1
+                            }]
+                        },
+                        "options": {
+                            "plugins": {
+                                "legend": {"display": False},
+                                "tooltip": {"enabled": True},
+                                "title": {
+                                    "display": True,
+                                    "text": "Category Distribution",
+                                    "font": {"size": 16}
+                                }
+                            },
+                            "scales": {
+                                "y": {
+                                    "beginAtZero": True,
+                                    "title": {"display": True, "text": "Count"}
+                                },
+                                "x": {
+                                    "title": {"display": True, "text": "Category"}
+                                }
+                            }
+                        }
+                    }
+                    st.markdown("### Category Distribution")
+                    st.markdown("<div class='tooltip'>Hover over bars for details<span class='tooltiptext'>Click bars to highlight</span></div>", unsafe_allow_html=True)
+                    st.write("")
+                    st.markdown("```chartjs\n" + str(chart_data) + "\n```")
+
+                    # Downloadable CSV
+                    csv_buffer = io.StringIO()
+                    full_results_df = pd.DataFrame([
+                        {
+                            "Text": res["text"],
+                            "Category": res["predicted_category"],
+                            "Confidence": res["confidence"],
+                            "Threshold Met": "Yes" if res["confidence"] >= confidence_threshold else "No",
+                            **res["raw_probabilities"]
+                        } for res in all_raw_results
+                    ])
+                    full_results_df.to_csv(csv_buffer, index=False)
+                    st.session_state.batch_download_data = csv_buffer.getvalue()
+
+                    st.download_button(
+                        label="📥 Download Results (CSV)",
+                        data=st.session_state.batch_download_data,
+                        file_name="batch_predictions.csv",
+                        mime="text/csv",
+                        help="Download detailed results with probabilities."
+                    )
+                else:
+                    st.info("No predictions meet the current confidence threshold.")
         else:
-            st.warning("Please upload a file or ensure it contains valid texts for batch prediction.")
-
-    # Re-display previous batch results if they exist in session state (e.g., after slider change)
-    if not st.session_state.batch_results_df.empty:
-        st.subheader("Current Batch Results (Filtered by Slider):")
-        # Re-filter based on current slider value
-        filtered_results_rerun = [res for res in st.session_state.all_raw_results if res["confidence"] >= confidence_threshold]
-        
-        if not filtered_results_rerun:
-            st.warning(f"No predictions meet the current confidence threshold of {confidence_threshold:.2f}. Try lowering the threshold or check inputs.")
-
-        results_df_rerun = pd.DataFrame([
-            {
-                "Text": res["text"][:150] + "..." if len(res["text"]) > 150 else res["text"],
-                "Predicted Category": res["predicted_category"],
-                "Confidence": f"{res['confidence']:.4f}",
-                "Threshold Met": "✅ Yes" if res["confidence"] >= confidence_threshold else "❌ No"
-            } for res in st.session_state.all_raw_results
-        ])
-        st.dataframe(results_df_rerun, use_container_width=True, height=300)
-
-        st.subheader("Predicted Category Distribution (Above Current Threshold)")
-        if filtered_results_rerun:
-            category_counts_rerun = pd.Series([res["predicted_category"] for res in filtered_results_rerun]).value_counts()
-            fig_rerun, ax_rerun = plt.subplots(figsize=(10, 6))
-            sns.barplot(x=category_counts_rerun.index, y=category_counts_rerun.values, ax=ax_rerun, palette="viridis")
-            ax_rerun.set_title("Predicted Categories Distribution (Filtered)")
-            ax_rerun.set_xlabel("Category")
-            ax_rerun.set_ylabel("Count")
-            plt.xticks(rotation=45, ha='right')
-            st.pyplot(fig_rerun)
-        else:
-            st.info("No categories to display from previous results as no predictions meet the current confidence threshold.")
-        
-        if st.session_state.batch_download_data: # Only show download button if data exists
-            st.download_button(
-                label="📥 Download All Predictions (CSV)",
-                data=st.session_state.batch_download_data,
-                file_name="batch_predictions.csv",
-                mime="text/csv",
-                help="Download detailed prediction results including raw probabilities."
-            )
-
+            st.error("Please upload a valid file.")
 
 with tab3:
-    st.header("🧠 Model & Performance Info")
-    st.markdown("""
-        This section provides details about the underlying machine learning model and its performance.
-    """)
+    st.header("🧠 Model Details")
+    st.markdown("Learn about the machine learning model powering this app.")
 
     st.subheader("Model Architecture")
     st.markdown(f"""
-        - **Base Model:** DistilBERT (`{model.config._name_or_path}`)
+        - **Base Model:** DistilBERT
         - **Task:** Multi-class Text Classification
-        - **Fine-tuned On:** AG News Dataset
-        - **Number of Categories:** {len(id_to_label)}
+        - **Dataset:** AG News
         - **Categories:** {', '.join(id_to_label.values())}
-        - **Model Device:** {device.type.upper()}
+        - **Device:** {device.type.upper()}
     """)
 
-    st.subheader("Performance Metrics (Validation Set)")
-    st.info("""
-        The model was evaluated on a held-out validation set (10% of the total dataset).
-        These metrics reflect its performance on unseen data.
-    """)
-    
-    # Hardcode metrics from your model_evaluation.py output
-    # You can update these after running model_evaluation.py and getting fresh results
+    st.subheader("Performance Metrics")
     col_acc, col_f1, col_precision, col_recall = st.columns(4)
     with col_acc:
-        st.metric(label="Overall Accuracy", value="94.22%") # From your previous output
+        st.metric("Accuracy", "94.22%")
     with col_f1:
-        st.metric(label="Macro F1-Score", value="94.00%") # Approx from your previous output
+        st.metric("F1-Score", "94.00%")
     with col_precision:
-        st.metric(label="Macro Precision", value="94.00%") # Approx from your previous output
+        st.metric("Precision", "94.00%")
     with col_recall:
-        st.metric(label="Macro Recall", value="94.00%") # Approx from your previous output
-
-    st.markdown("---")
-    st.markdown("""
-        For a detailed classification report and confusion matrix, please refer to the
-        `model_evaluation.py` script and its outputs in the GitHub repository.
-    """)
-
+        st.metric("Recall", "94.00%")
 
 with tab4:
-    st.header("👋 About This Demo & Contact")
+    st.header("👋 About")
     st.markdown("""
-        This Streamlit application showcases a News Article Category Classifier,
-        demonstrating a full end-to-end NLP pipeline.
+        This app demonstrates an end-to-end NLP pipeline for news article classification, built with Streamlit, Hugging Face Transformers, and Apache Spark.
 
-        **Pipeline Overview:**
-        1.  **Data Ingestion**: News articles are sourced from the AG News dataset.
-        2.  **Data Processing (Apache Spark)**: Raw text is cleaned (e.g., lowercasing, removing special characters, URLs, hashtags, mentions) and prepared for model training.
-        3.  **Model Training (Hugging Face Transformers)**: A pre-trained DistilBERT model is fine-tuned on the processed news data for multi-class text classification.
-        4.  **Model Deployment (Streamlit)**: The trained model is integrated into this interactive web application for live inference.
-
-        **GitHub Repository:**
-        Explore the full source code, detailed setup instructions, and the entire data science pipeline on GitHub:
-        [https://github.com/SRAVAN-DSAI/nlp_news_pipeline](https://github.com/SRAVAN-DSAI/nlp_news_pipeline)
-        
-
-        ---
         **Connect with me:**
         - **Sravan Kodari**
-        - [LinkedIn Profile Link] (e.g., `https://www.linkedin.com/in/sravan-kodari`)
-        - [Portfolio Website Link] (e.g., `sravn.pp.ua`)
-        - Email: `sravankodari4@gmail.com`
+        - [GitHub](https://github.com/SRAVAN-DSAI/nlp_news_pipeline)
+        - [LinkedIn](https://www.linkedin.com/in/sravan-kodari)
+        - Email: sravankodari4@gmail.com
 
-        ---
-        <small>Last updated: July 2025.</small>
+        <small>Last updated: July 2025</small>
     """, unsafe_allow_html=True)
+
+# --- Footer ---
+st.markdown("""
+    <div class='footer-container'>
+        <p>© 2025 Sravan Kodari | 
+        <a href='https://github.com/SRAVAN-DSAI/nlp_news_pipeline' target='_blank'>GitHub</a> | 
+        <a href='https://www.linkedin.com/in/sravan-kodari' target='_blank'>LinkedIn</a></p>
+    </div>
+""", unsafe_allow_html=True)
