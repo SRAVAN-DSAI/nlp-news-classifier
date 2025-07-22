@@ -378,7 +378,7 @@ def clear_all_inputs():
     st.session_state.batch_download_data = None
     st.success("All inputs and results cleared!")
     time.sleep(0.5)
-    st.experimental_rerun()
+    st.rerun()  # Replaced experimental_rerun with rerun
 
 st.sidebar.button("🧹 Clear All", on_click=clear_all_inputs)
 
