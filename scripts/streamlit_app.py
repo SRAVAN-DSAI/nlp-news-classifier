@@ -246,10 +246,14 @@ if 'theme' not in st.session_state:
 
 def toggle_theme():
     st.session_state.theme = 'dark' if st.session_state.theme == 'light' else 'light'
+    st.rerun()  # Force a full rerender to apply the new theme
 
+# Inject JavaScript to update data-theme dynamically
 st.markdown(f"""
     <script>
+        // Set initial theme based on session state
         document.body.setAttribute('data-theme', '{st.session_state.theme}');
+        // Optional: Add event listener for future dynamic updates (though rerender handles this)
     </script>
 """, unsafe_allow_html=True)
 
@@ -378,7 +382,7 @@ def clear_all_inputs():
     st.session_state.batch_download_data = None
     st.success("All inputs and results cleared!")
     time.sleep(0.5)
-    st.rerun()  # Replaced experimental_rerun with rerun
+    st.rerun()
 
 st.sidebar.button("🧹 Clear All", on_click=clear_all_inputs)
 
@@ -410,7 +414,7 @@ with tab1:
     with col_sample:
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("Try Sample", help="Load a sample article", on_click=lambda: st.session_state.update({"text_input_single": sample_article})):
-            pass  # State update handled by on_click
+            pass
 
     if st.button("🚀 Classify", help="Run classification on the input text"):
         if user_input_single and len(user_input_single.strip()) >= 10:
