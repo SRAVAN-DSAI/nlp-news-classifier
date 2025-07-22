@@ -1,0 +1,11 @@
+pyspark
+findspark
+datasets
+transformers
+torch
+pandas
+scikit-learn
+streamlit
+matplotlib
+seaborn
+pyyaml
