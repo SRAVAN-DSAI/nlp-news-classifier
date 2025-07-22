@@ -21,13 +21,13 @@ st.set_page_config(
     }
 )
 
-# --- Custom CSS for Light and Dark Modes (No White Colors, Improved Contrast) ---
+# --- Custom CSS for Light Mode (No White Colors, Improved Contrast) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 
     :root {
-        /* Light Mode Variables */
+        /* Light Mode Variables (Enforced) */
         --primary-bg: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
         --secondary-bg: #f0f2f6; /* Light gray instead of white */
         --text-color: #2c3e50; /* Darker text for contrast */
@@ -43,25 +43,6 @@ st.markdown("""
         --alert-warning-text: #ef6c00;
         --chart-bg: #f0f2f6; /* Light gray for charts */
         --chart-text: #2c3e50;
-    }
-
-    [data-theme="dark"] {
-        /* Dark Mode Variables */
-        --primary-bg: linear-gradient(135deg, #2c3e50 0%, #1a1a1a 100%);
-        --secondary-bg: #2d3b4e; /* Dark gray instead of white */
-        --text-color: #ecf0f1; /* Lighter text for contrast */
-        --accent-color: #4fc3f7;
-        --button-bg: linear-gradient(45deg, #4fc3f7, #039be5);
-        --button-hover-bg: linear-gradient(45deg, #039be5, #4fc3f7);
-        --button-text: #ffffff; /* White text on buttons */
-        --border-color: #3b4a60;
-        --shadow-color: rgba(0,0,0,0.3);
-        --alert-success-bg: #1b5e20;
-        --alert-success-text: #a5d6a7;
-        --alert-warning-bg: #ef6c00;
-        --alert-warning-text: #ffcc80;
-        --chart-bg: #2d3b4e; /* Dark gray for charts */
-        --chart-text: #ecf0f1;
     }
 
     .stApp {
@@ -240,24 +221,16 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# --- Theme Toggle ---
+# --- Theme Setting (Enforced Light Mode) ---
 if 'theme' not in st.session_state:
     st.session_state.theme = 'light'
 
-def toggle_theme():
-    st.session_state.theme = 'dark' if st.session_state.theme == 'light' else 'light'
-    st.rerun()  # Force a full rerender to apply the new theme
-
-# Inject JavaScript to update data-theme dynamically
-st.markdown(f"""
+# Inject JavaScript to enforce light mode
+st.markdown("""
     <script>
-        // Set initial theme based on session state
-        document.body.setAttribute('data-theme', '{st.session_state.theme}');
-        // Optional: Add event listener for future dynamic updates (though rerender handles this)
+        document.body.setAttribute('data-theme', 'light');
     </script>
 """, unsafe_allow_html=True)
-
-st.sidebar.button("🌙 Toggle Theme", on_click=toggle_theme, help="Switch between light and dark modes")
 
 # --- Configuration Paths ---
 LOCAL_MODEL_DIR_RELATIVE = "models/trained_news_classifier"
