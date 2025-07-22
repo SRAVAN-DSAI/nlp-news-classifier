@@ -21,7 +21,7 @@ st.set_page_config(
     }
 )
 
-# --- Custom CSS for Light and Dark Modes ---
+# --- Custom CSS for Light and Dark Modes (No White Colors) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
@@ -29,36 +29,36 @@ st.markdown("""
     :root {
         /* Light Mode Variables */
         --primary-bg: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-        --secondary-bg: #ffffff;
+        --secondary-bg: #f0f2f6; /* Light gray instead of white */
         --text-color: #1a1a1a;
         --accent-color: #3498db;
         --button-bg: linear-gradient(45deg, #3498db, #2980b9);
         --button-hover-bg: linear-gradient(45deg, #2980b9, #3498db);
-        --border-color: #e0e0e0;
+        --border-color: #d1d5db;
         --shadow-color: rgba(0,0,0,0.1);
         --alert-success-bg: #e6f4ea;
         --alert-success-text: #2e7d32;
         --alert-warning-bg: #fff3e0;
         --alert-warning-text: #ef6c00;
-        --chart-bg: #ffffff;
+        --chart-bg: #f0f2f6; /* Light gray for charts */
         --chart-text: #1a1a1a;
     }
 
     [data-theme="dark"] {
         /* Dark Mode Variables */
         --primary-bg: linear-gradient(135deg, #2c3e50 0%, #1a1a1a 100%);
-        --secondary-bg: #34495e;
+        --secondary-bg: #2d3b4e; /* Dark gray instead of white */
         --text-color: #e0e0e0;
         --accent-color: #4fc3f7;
         --button-bg: linear-gradient(45deg, #4fc3f7, #039be5);
         --button-hover-bg: linear-gradient(45deg, #039be5, #4fc3f7);
-        --border-color: #34495e;
+        --border-color: #3b4a60;
         --shadow-color: rgba(0,0,0,0.3);
         --alert-success-bg: #1b5e20;
         --alert-success-text: #a5d6a7;
         --alert-warning-bg: #ef6c00;
         --alert-warning-text: #ffcc80;
-        --chart-bg: #2c3e50;
+        --chart-bg: #2d3b4e; /* Dark gray for charts */
         --chart-text: #e0e0e0;
     }
 
