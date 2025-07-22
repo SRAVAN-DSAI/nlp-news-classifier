@@ -1,4 +1,3 @@
-
 import streamlit as st
 import torch
 import numpy as np
@@ -12,7 +11,7 @@ import time
 # --- Streamlit App Configuration ---
 st.set_page_config(
     page_title="News Article Classifier | Sravan Kodari",
-    page_icon="📰",  # Custom favicon
+    page_icon="📰",
     layout="wide",
     initial_sidebar_state="expanded",
     menu_items={
@@ -22,62 +21,90 @@ st.set_page_config(
     }
 )
 
-# --- Custom CSS for Advanced UI ---
+# --- Custom CSS for Light and Dark Modes ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 
+    :root {
+        /* Light Mode Variables */
+        --primary-bg: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        --secondary-bg: #ffffff;
+        --text-color: #1a1a1a;
+        --accent-color: #3498db;
+        --button-bg: linear-gradient(45deg, #3498db, #2980b9);
+        --button-hover-bg: linear-gradient(45deg, #2980b9, #3498db);
+        --border-color: #e0e0e0;
+        --shadow-color: rgba(0,0,0,0.1);
+        --alert-success-bg: #e6f4ea;
+        --alert-success-text: #2e7d32;
+        --alert-warning-bg: #fff3e0;
+        --alert-warning-text: #ef6c00;
+        --chart-bg: #ffffff;
+        --chart-text: #1a1a1a;
+    }
+
+    [data-theme="dark"] {
+        /* Dark Mode Variables */
+        --primary-bg: linear-gradient(135deg, #2c3e50 0%, #1a1a1a 100%);
+        --secondary-bg: #34495e;
+        --text-color: #e0e0e0;
+        --accent-color: #4fc3f7;
+        --button-bg: linear-gradient(45deg, #4fc3f7, #039be5);
+        --button-hover-bg: linear-gradient(45deg, #039be5, #4fc3f7);
+        --border-color: #34495e;
+        --shadow-color: rgba(0,0,0,0.3);
+        --alert-success-bg: #1b5e20;
+        --alert-success-text: #a5d6a7;
+        --alert-warning-bg: #ef6c00;
+        --alert-warning-text: #ffcc80;
+        --chart-bg: #2c3e50;
+        --chart-text: #e0e0e0;
+    }
+
     .stApp {
         font-family: 'Inter', sans-serif;
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-        color: #1a1a1a;
-        transition: background 0.3s ease;
+        background: var(--primary-bg);
+        color: var(--text-color);
+        transition: all 0.3s ease;
     }
-    [data-theme="dark"] .stApp {
-        background: linear-gradient(135deg, #2c3e50 0%, #1a1a1a 100%);
-        color: #e0e0e0;
-    }
+
     .stSidebar {
-        background-color: #ffffff;
-        border-right: 1px solid #e0e0e0;
-        box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        background-color: var(--secondary-bg);
+        border-right: 1px solid var(--border-color);
+        box-shadow: 2px 0 5px var(--shadow-color);
     }
-    [data-theme="dark"] .stSidebar {
-        background-color: #2c3e50;
-        border-right: 1px solid #34495e;
-    }
+
     .stTabs [data-baseweb="tab-list"] {
         gap: 10px;
         padding: 10px;
-        background-color: #ffffff;
+        background-color: var(--secondary-bg);
         border-radius: 12px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 4px var(--shadow-color);
     }
-    [data-theme="dark"] .stTabs [data-baseweb="tab-list"] {
-        background-color: #34495e;
-    }
+
     .stTabs [data-baseweb="tab-list"] button {
         padding: 12px 20px;
         border-radius: 10px;
         background-color: transparent;
         transition: all 0.3s ease;
         font-weight: 600;
-        color: #34495e;
+        color: var(--text-color);
     }
-    [data-theme="dark"] .stTabs [data-baseweb="tab-list"] button {
-        color: #ecf0f1;
-    }
+
     .stTabs [data-baseweb="tab-list"] button:hover {
-        background-color: #ecf0f1;
+        background-color: var(--border-color);
         transform: translateY(-2px);
     }
+
     .stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {
-        background-color: #3498db;
+        background-color: var(--accent-color);
         color: #ffffff;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        box-shadow: 0 2px 4px var(--shadow-color);
     }
+
     .stButton>button {
-        background: linear-gradient(45deg, #3498db, #2980b9);
+        background: var(--button-bg);
         color: #ffffff;
         border: none;
         border-radius: 12px;
@@ -85,78 +112,90 @@ st.markdown("""
         font-size: 1.1rem;
         font-weight: 600;
         transition: all 0.3s ease;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        box-shadow: 0 2px 4px var(--shadow-color);
     }
+
     .stButton>button:hover {
-        background: linear-gradient(45deg, #2980b9, #3498db);
+        background: var(--button-hover-bg);
         transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        box-shadow: 0 4px 8px var(--shadow-color);
     }
+
     .stTextArea textarea {
         border-radius: 12px;
-        border: 2px solid #e0e0e0;
+        border: 2px solid var(--border-color);
         padding: 12px;
         font-size: 1rem;
         transition: border-color 0.3s ease;
+        background-color: var(--secondary-bg);
+        color: var(--text-color);
     }
+
     .stTextArea textarea:focus {
-        border-color: #3498db;
+        border-color: var(--accent-color);
         box-shadow: 0 0 5px rgba(52, 152, 219, 0.5);
     }
+
     .stDataFrame {
         border-radius: 12px;
         overflow: hidden;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 4px var(--shadow-color);
+        background-color: var(--secondary-bg);
     }
-    .stAlert {
+
+    .stAlert[data-testid="stAlertSuccess"] {
+        background-color: var(--alert-success-bg);
+        color: var(--alert-success-text);
         border-radius: 12px;
         padding: 15px;
     }
+
+    .stAlert[data-testid="stAlertWarning"] {
+        background-color: var(--alert-warning-bg);
+        color: var(--alert-warning-text);
+        border-radius: 12px;
+        padding: 15px;
+    }
+
     h1, h2, h3 {
-        color: #2c3e50;
+        color: var(--text-color);
         font-weight: 700;
     }
-    [data-theme="dark"] h1, [data-theme="dark"] h2, [data-theme="dark"] h3 {
-        color: #ecf0f1;
-    }
+
     .stProgress > div > div > div > div {
-        background: linear-gradient(45deg, #3498db, #2980b9);
+        background: var(--button-bg);
     }
+
     .header-container {
         position: sticky;
         top: 0;
-        background-color: #ffffff;
+        background-color: var(--secondary-bg);
         z-index: 1000;
         padding: 1rem;
-        border-bottom: 1px solid #e0e0e0;
+        border-bottom: 1px solid var(--border-color);
         display: flex;
         justify-content: space-between;
         align-items: center;
     }
-    [data-theme="dark"] .header-container {
-        background-color: #2c3e50;
-        border-bottom: 1px solid #34495e;
-    }
+
     .footer-container {
-        background-color: #ffffff;
+        background-color: var(--secondary-bg);
         padding: 1rem;
         text-align: center;
-        border-top: 1px solid #e0e0e0;
+        border-top: 1px solid var(--border-color);
         margin-top: 2rem;
     }
-    [data-theme="dark"] .footer-container {
-        background-color: #2c3e50;
-        border-top: 1px solid #34495e;
-    }
+
     .tooltip {
         position: relative;
         display: inline-block;
     }
+
     .tooltip .tooltiptext {
         visibility: hidden;
         width: 120px;
-        background-color: #34495e;
-        color: #fff;
+        background-color: var(--accent-color);
+        color: #ffffff;
         text-align: center;
         border-radius: 6px;
         padding: 5px;
@@ -168,9 +207,19 @@ st.markdown("""
         opacity: 0;
         transition: opacity 0.3s;
     }
+
     .tooltip:hover .tooltiptext {
         visibility: visible;
         opacity: 1;
+    }
+
+    a {
+        color: var(--accent-color);
+        text-decoration: none;
+    }
+
+    a:hover {
+        text-decoration: underline;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -180,16 +229,16 @@ st.markdown("""
     <div class='header-container'>
         <div style='display: flex; align-items: center;'>
             <h2 style='margin: 0;'>📰 News Classifier</h2>
-            <span style='margin-left: 1rem; color: #7f8c8d;'>by Sravan Kodari</span>
+            <span style='margin-left: 1rem; color: var(--text-color); opacity: 0.7;'>by Sravan Kodari</span>
         </div>
         <div>
-            <a href='https://github.com/SRAVAN-DSAI/nlp_news_pipeline' target='_blank' style='margin-right: 1rem; text-decoration: none; color: #3498db;'>GitHub</a>
-            <a href='https://www.linkedin.com/in/sravan-kodari' target='_blank' style='text-decoration: none; color: #3498db;'>LinkedIn</a>
+            <a href='https://github.com/SRAVAN-DSAI/nlp_news_pipeline' target='_blank' style='margin-right: 1rem;'>GitHub</a>
+            <a href='https://www.linkedin.com/in/sravan-kodari' target='_blank'>LinkedIn</a>
         </div>
     </div>
 """, unsafe_allow_html=True)
 
-# --- Dark Mode Toggle ---
+# --- Theme Toggle ---
 if 'theme' not in st.session_state:
     st.session_state.theme = 'light'
 
@@ -202,7 +251,7 @@ st.markdown(f"""
     </script>
 """, unsafe_allow_html=True)
 
-st.sidebar.button("🌙 Toggle Dark Mode", on_click=toggle_theme)
+st.sidebar.button("🌙 Toggle Theme", on_click=toggle_theme, help="Switch between light and dark modes")
 
 # --- Configuration Paths ---
 LOCAL_MODEL_DIR_RELATIVE = "models/trained_news_classifier"
@@ -343,7 +392,7 @@ with tab1:
     st.header("Analyze a Single Article")
     st.markdown("Enter a news article to classify its category and view confidence scores.")
 
-    sample_article = "Google announced today from Mountain View that Sundar Pichai will lead a new AI initiative in London. The company's stock rose slightly after the announcement."
+    sample_article = "Google announced today that Sundar Pichai will lead a new AI initiative in London. The company's stock rose slightly after the announcement."
     
     col_input, col_sample = st.columns([3, 1])
     with col_input:
@@ -354,7 +403,6 @@ with tab1:
             placeholder="e.g., 'Scientists discover new exoplanet with potential for life.'",
             help="Paste or type a news article here."
         )
-        # Live validation
         if user_input_single and len(user_input_single.strip()) < 10:
             st.warning("Input is too short. Please provide more text for accurate classification.")
     with col_sample:
@@ -384,7 +432,6 @@ with tab1:
                 }).sort_values(by="Probability", ascending=False)
                 st.dataframe(prob_df, hide_index=True, use_container_width=True)
 
-                # Interactive Chart
                 chart_data = {
                     "type": "bar",
                     "data": {
@@ -404,24 +451,38 @@ with tab1:
                             "title": {
                                 "display": True,
                                 "text": "Category Probabilities",
-                                "font": {"size": 16}
+                                "font": {"size": 16, "color": "var(--chart-text)"},
+                                "color": "var(--chart-text)"
                             }
                         },
                         "scales": {
                             "y": {
                                 "beginAtZero": True,
-                                "title": {"display": True, "text": "Probability"}
+                                "title": {
+                                    "display": True,
+                                    "text": "Probability",
+                                    "color": "var(--chart-text)"
+                                },
+                                "ticks": {"color": "var(--chart-text)"},
+                                "grid": {"color": "var(--border-color)"}
                             },
                             "x": {
-                                "title": {"display": True, "text": "Category"}
+                                "title": {
+                                    "display": True,
+                                    "text": "Category",
+                                    "color": "var(--chart-text)"
+                                },
+                                "ticks": {"color": "var(--chart-text)"},
+                                "grid": {"color": "var(--border-color)"}
                             }
-                        }
+                        },
+                        "backgroundColor": "var(--chart-bg)"
                     }
                 }
                 st.markdown("### Probability Distribution")
                 st.markdown("<div class='tooltip'>Hover over bars for details<span class='tooltiptext'>Click bars to highlight</span></div>", unsafe_allow_html=True)
                 st.write("")
-                st.markdown("```chartjs\n" + str(chart_data) + "\n```")
+                st.markdown(f"```chartjs\n{chart_data}\n```")
         else:
             st.error("Please enter a valid article text.")
 
@@ -500,26 +561,39 @@ with tab2:
                                 "title": {
                                     "display": True,
                                     "text": "Category Distribution",
-                                    "font": {"size": 16}
+                                    "font": {"size": 16, "color": "var(--chart-text)"},
+                                    "color": "var(--chart-text)"
                                 }
                             },
                             "scales": {
                                 "y": {
                                     "beginAtZero": True,
-                                    "title": {"display": True, "text": "Count"}
+                                    "title": {
+                                        "display": True,
+                                        "text": "Count",
+                                        "color": "var(--chart-text)"
+                                    },
+                                    "ticks": {"color": "var(--chart-text)"},
+                                    "grid": {"color": "var(--border-color)"}
                                 },
                                 "x": {
-                                    "title": {"display": True, "text": "Category"}
+                                    "title": {
+                                        "display": True,
+                                        "text": "Category",
+                                        "color": "var(--chart-text)"
+                                    },
+                                    "ticks": {"color": "var(--chart-text)"},
+                                    "grid": {"color": "var(--border-color)"}
                                 }
-                            }
+                            },
+                            "backgroundColor": "var(--chart-bg)"
                         }
                     }
                     st.markdown("### Category Distribution")
                     st.markdown("<div class='tooltip'>Hover over bars for details<span class='tooltiptext'>Click bars to highlight</span></div>", unsafe_allow_html=True)
                     st.write("")
-                    st.markdown("```chartjs\n" + str(chart_data) + "\n```")
+                    st.markdown(f"```chartjs\n{chart_data}\n```")
 
-                    # Downloadable CSV
                     csv_buffer = io.StringIO()
                     full_results_df = pd.DataFrame([
                         {
