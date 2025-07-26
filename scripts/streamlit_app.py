@@ -48,7 +48,6 @@ st.markdown("""
         font-family: 'Inter', sans-serif;
         background: var(--primary-bg);
         color: var(--text-color);
-        transition: all 0.3s ease;
     }
 
     .stSidebar {
@@ -56,23 +55,7 @@ st.markdown("""
         border-right: 1px solid var(--border-color);
         box-shadow: 2px 0 5px var(--shadow-color);
     }
-
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 10px; padding: 10px; background-color: var(--secondary-bg);
-        border-radius: 12px; box-shadow: 0 2px 4px var(--shadow-color);
-    }
-    .stTabs [data-baseweb="tab-list"] button {
-        padding: 12px 20px; border-radius: 10px; background-color: transparent;
-        transition: all 0.3s ease; font-weight: 600; color: var(--text-color);
-    }
-    .stTabs [data-baseweb="tab-list"] button:hover {
-        background-color: var(--border-color); transform: translateY(-2px);
-    }
-    .stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {
-        background-color: var(--accent-color); color: #ffffff;
-        box-shadow: 0 2px 4px var(--shadow-color);
-    }
-
+    
     .stButton>button {
         background: var(--button-bg); color: var(--button-text); border: none;
         border-radius: 12px; padding: 12px 24px; font-size: 1.1rem;
@@ -85,16 +68,11 @@ st.markdown("""
 
     .stTextArea textarea {
         border-radius: 12px; border: 2px solid var(--border-color); padding: 12px;
-        font-size: 1rem; transition: border-color 0.3s ease; background-color: var(--secondary-bg);
+        font-size: 1rem; background-color: var(--secondary-bg);
         color: var(--text-color);
     }
     .stTextArea textarea:focus {
-        border-color: var(--accent-color); box-shadow: 0 0 5px rgba(52, 152, 219, 0.5);
-    }
-
-    .stDataFrame {
-        border-radius: 12px; overflow: hidden; box-shadow: 0 2px 4px var(--shadow-color);
-        background-color: var(--secondary-bg);
+        border-color: var(--accent-color);
     }
 
     h1, h2, h3 {
@@ -160,8 +138,7 @@ model, tokenizer, id_to_label, device = load_model_and_tokenizer()
 def predict_category(text_list, loaded_model, loaded_tokenizer, id_to_label_map, current_device):
     """Predicts categories for a list of texts."""
     results = []
-    if not text_list:
-        return results
+    if not text_list: return results
     for text in text_list:
         if not isinstance(text, str) or not text.strip():
             results.append({"text": text, "predicted_category": "Invalid/Empty", "confidence": 0.0, "raw_probabilities": {}})
@@ -179,24 +156,38 @@ def predict_category(text_list, loaded_model, loaded_tokenizer, id_to_label_map,
         })
     return results
 
-def clear_all_state():
-    """Clears all items from the session state via callback."""
-    st.session_state.clear()
+def clear_inputs_and_results():
+    """
+    This is a more robust callback function.
+    It explicitly sets the input widget's state to empty and deletes result data.
+    """
+    st.session_state.text_input_single = ""
+    # We use pop to safely remove the key if it exists, avoiding errors.
+    st.session_state.pop('results_df', None)
+    # This resets the file uploader widget by changing its key
+    st.session_state.uploader_key_counter += 1
+
+# --- Initialize session state keys ---
+if 'text_input_single' not in st.session_state:
+    st.session_state.text_input_single = ""
+if 'uploader_key_counter' not in st.session_state:
+    st.session_state.uploader_key_counter = 0
+
 
 # --- Sidebar Controls ---
 with st.sidebar:
     st.header("⚙️ Settings")
     confidence_threshold = st.slider(
-        "Confidence Threshold", min_value=0.0, max_value=1.0, value=0.75, step=0.05,
+        "Confidence Threshold", 0.0, 1.0, 0.75, 0.05,
         help="Filter predictions by minimum confidence level.", key="confidence_threshold"
     )
     max_batch_size = st.number_input(
-        "Max Batch Size", min_value=1, max_value=1000, value=100, step=10,
-        help="Limit the number of articles processed in one batch from a file."
+        "Max Batch Size", 1, 1000, 100, 10,
+        help="Limit articles processed from a file."
     )
     st.button(
         "🧹 Clear Inputs & Results",
-        on_click=clear_all_state,
+        on_click=clear_inputs_and_results,
         use_container_width=True
     )
 
@@ -211,26 +202,25 @@ with tab1:
 
     col_input, col_sample = st.columns([3, 1])
     with col_input:
+        # The key for this widget is initialized at the start of the script
         user_input_single = st.text_area(
-            "Article Text", height=200, placeholder="e.g., 'Scientists discover new exoplanet with potential for life.'",
-            help="Paste or type a news article here.", key="text_input_single"
+            "Article Text", height=200,
+            placeholder="e.g., 'Scientists discover new exoplanet...'",
+            key="text_input_single"
         )
     with col_sample:
         st.write("")
         st.write("")
-        st.button(
-            "Try Sample Article",
-            on_click=load_sample,
-            use_container_width=True
-        )
+        st.button("Try Sample Article", on_click=load_sample, use_container_width=True)
 
     if st.button("🚀 Classify Article", type="primary", use_container_width=True, disabled=not user_input_single):
         if len(user_input_single.strip()) < 10:
-            st.warning("Input is too short. Please provide more text for an accurate classification.")
+            st.warning("Input is too short. Please provide more text.")
         else:
             with st.spinner("Classifying..."):
                 result = predict_category([user_input_single], model, tokenizer, id_to_label, device)[0]
             st.subheader("Classification Result")
+            # ... (rest of the tab logic is unchanged)
             col_result, col_probs = st.columns(2)
             with col_result:
                 category = result['predicted_category']
@@ -256,8 +246,15 @@ with tab1:
 with tab2:
     st.header("Analyze a Batch of Articles")
     st.markdown("Upload a **TXT** (one article per line) or **CSV** (must contain a 'text' column) file.")
-    uploaded_file = st.file_uploader("Upload your file", type=["txt", "csv"], key="file_uploader")
+    
+    # Using a dynamic key to allow the widget to be reset
+    uploaded_file = st.file_uploader(
+        "Upload your file", type=["txt", "csv"],
+        key=f"file_uploader_{st.session_state.uploader_key_counter}"
+    )
+
     if uploaded_file:
+        # ... (rest of the tab logic is unchanged)
         try:
             if uploaded_file.name.endswith('.txt'):
                 texts = [line.decode("utf-8").strip() for line in uploaded_file if line.strip()]
@@ -267,7 +264,6 @@ with tab2:
                     st.error("CSV file must contain a 'text' column.")
                     st.stop()
                 texts = df['text'].dropna().astype(str).tolist()
-
             st.info(f"Found **{len(texts)}** articles in the file.")
             if len(texts) > max_batch_size:
                 st.warning(f"File contains {len(texts)} articles. Only processing the first **{max_batch_size}** as per settings.")
@@ -275,7 +271,7 @@ with tab2:
             if st.button(f"📊 Run Analysis on {len(texts)} Articles", use_container_width=True, type="primary"):
                 progress_bar = st.progress(0, text="Starting batch analysis...")
                 results = []
-                num_chunks = (len(texts) // 10) + 1
+                num_chunks = max(1, (len(texts) // 10))
                 for i, text_chunk in enumerate(np.array_split(texts, num_chunks)):
                     results.extend(predict_category(text_chunk.tolist(), model, tokenizer, id_to_label, device))
                     progress_bar.progress((i + 1) / num_chunks, f"Processing... {len(results)}/{len(texts)} articles classified.")
@@ -327,7 +323,7 @@ with tab3:
     col2.metric("F1-Score (Macro)", "94.00%")
     st.header("👋 About the Creator")
     st.markdown("""
-    This app was built by **Sravan Kodari** to demonstrate an end-to-end NLP pipeline.
+    This app was built by **Sravan Kodari**.
     - **Connect:** [GitHub](https://github.com/SRAVAN-DSAI/nlp_news_pipeline) | [LinkedIn](https://www.linkedin.com/in/sravan-kodari)
     - **Contact:** sravankodari4@gmail.com
 
