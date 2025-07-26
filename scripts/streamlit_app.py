@@ -23,7 +23,6 @@ st.set_page_config(
 )
 
 # --- Custom CSS for a Polished UI ---
-# NOTE: Plotly charts are styled within the Python code for better integration.
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
@@ -145,7 +144,6 @@ def load_model_and_tokenizer():
             f"**Error:** Model files not found. 🚨**\n\n"
             f"Please ensure the `{MODEL_DIR}` and `{LABEL_MAP_FILE}` are in your GitHub repository.\n\n"
             f"**Important**: If your model is large, you must use Git LFS (Large File Storage) to track it. "
-            f"See deployment instructions."
         )
         st.stop()
 
@@ -218,8 +216,13 @@ with tab1:
     st.header("Analyze a Single Article")
     sample_article = "Google announced today that Sundar Pichai will lead a new AI initiative in London. The company's stock rose slightly after the announcement."
     
+    # Define the callback function to update the state
+    def load_sample():
+        st.session_state.text_input_single = sample_article
+
     col_input, col_sample = st.columns([3, 1])
     with col_input:
+        # This widget's key is 'text_input_single'
         user_input_single = st.text_area(
             "Article Text", height=200, placeholder="e.g., 'Scientists discover new exoplanet with potential for life.'",
             help="Paste or type a news article here.", key="text_input_single"
@@ -227,9 +230,12 @@ with tab1:
     with col_sample:
         st.write("")
         st.write("")
-        if st.button("Try Sample Article", use_container_width=True):
-            st.session_state.text_input_single = sample_article
-            st.rerun()
+        # Use the on_click callback here. The button no longer needs an 'if' statement.
+        st.button(
+            "Try Sample Article",
+            on_click=load_sample, # This runs before the script reruns
+            use_container_width=True
+        )
 
     if st.button("🚀 Classify Article", type="primary", use_container_width=True, disabled=not user_input_single):
         if len(user_input_single.strip()) < 10:
